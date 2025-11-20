@@ -1,0 +1,214 @@
+---
+title: "Rethinking the Housing Crisis"
+author: "Nicc Forster-Benson"
+date: "`r Sys.Date()`"
+output: pdf_document
+number_sections: true
+---
+
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scipen = 999)
+library(tidyverse)
+library(stringr)
+library(tidycensus)
+library(lubridate)
+library(scales)
+library(janitor)
+library(patchwork)
+```
+
+
+```{r Loading Data, echo=FALSE}
+library(readr)
+df_indexed_rent <- read_csv("data/df_indexed_rent.csv")
+growth_df_adj <- read_csv("data/growth_df_adj.csv")
+master_df <- read_csv("data/master_df.csv")
+vacancy_growth_df <- read_csv("data/vacancy_growth_df.csv")
+pop_growth <- read_csv("data/pop_growth.csv")
+
+start_year <- 2013
+end_year   <- 2023
+years <- seq(start_year, end_year)
+```
+
+# Time Series
+
+```{r Time Series, echo=FALSE}
+# Time series (indexed)
+p_time_series <- df_indexed_rent %>%
+  ggplot(aes(x = year, y = rent_value_index, color = name)) +
+  geom_line(size = 1) +
+  geom_point(size = 1.2) +
+  labs(title = paste0("Indexed Median Rent (ACS) — base = ", start_year, " (100)"),
+       subtitle = paste0("MSAs: ", paste(unique(df_indexed_rent$name), collapse = " | ")),
+       x = "Year",
+       y = paste0("Index (", start_year, " = 100)"),
+       color = "MSA") +
+  scale_x_continuous(breaks = seq(start_year, end_year, by = 1)) +
+  theme_minimal() +
+  theme(legend.position = "bottom", plot.title = element_text(face = "bold"))
+p_time_series
+
+
+```
+
+# Supply and Demand
+
+```{r Supply and Demand, echo=FALSE}
+
+# Scatter plot: Housing price growth vs Population growth
+p_price_vs_pop <- growth_df_adj %>%
+  ggplot(aes(x = pop_growth_pct, y = rent_cumulative_pct, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  geom_text(nudge_y = 1.5, check_overlap = TRUE, size = 3.5) +
+  labs(title =paste0("Change in macro-demand and rent prices (", start_year, "–", end_year, ")"),
+    #subtitle = paste0("Population Growth vs Median Rent Growth (%)"),
+    x = "Population Growth (%)",
+    y = "Median Rent Growth (%)"
+  ) +
+  theme_minimal(base_size = 14)
+
+p_price_vs_pop
+
+
+# 1) Rent growth vs Units % increase
+rent_growth_vs_units_growth <- master_df %>%
+  ggplot(aes(x = vacancy_growth_df$units_pct_increase, y = rent_cumulative_pct, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(title =paste0("Change in macro-supply and rent prices (", start_year, "–", end_year, ")"),
+    x = "Unit growth (%)",
+    y = "Median rent growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+
+rent_growth_vs_units_growth
+
+```
+
+# Exploring Surplus Supply
+
+```{r Surplus Supply, echo=FALSE}
+
+
+unit_pop_dif <- vacancy_growth_df$units_increase - pop_growth$pop_dif
+
+# 2) Population increase vs Unit increase
+pop_dif_unit_dif <- master_df %>%
+  ggplot(aes(x = pop_growth$pop_dif, y = vacancy_growth_df$units_increase, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(
+    title = paste0("Population increase vs Unit increase (", start_year, "–", end_year, ")"),
+    x = "Population increase",
+    y = "Unit increase",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+pop_dif_unit_dif
+
+
+# 3) Population growth (%) vs Unit growth (%)
+pop_growth_unit_growth <- master_df %>%
+  ggplot(aes(x = pop_growth$pop_growth_pct, y = vacancy_growth_df$units_pct_increase, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(
+    title = paste0("Changes in macro-supply and demand (", start_year, "–", end_year, ")"),
+      subtitle = paste0("Population growth vs Unit growth (%)"),
+    x = "Population growth (%)",
+    y = "Unit growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+pop_growth_unit_growth
+
+
+# 4) Rent growth vs Population increase - Unit increase
+p_rent_vs_unit_pop_dif <- master_df %>%
+  ggplot(aes(x = unit_pop_dif, y = rent_cumulative_pct, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(
+    title = paste0("Median Rent Growth vs Unit increase - Population increase (", start_year, "–", end_year, ")"),
+    x = "Unit increase - Population increase ",
+    y = "Median rent growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+p_rent_vs_unit_pop_dif
+
+
+unit_pop_prct_dif <-  vacancy_growth_df$units_pct_increase - pop_growth$pop_growth_pct
+
+# 5) Rent growth vs Population increase - Unit increase
+p_rent_vs_unit_pop_pct_dif <- master_df %>%
+  ggplot(aes(x = unit_pop_prct_dif, y = rent_cumulative_pct, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(title = paste0("Changes in macro-supply surpluss and rent (", start_year, "–", end_year, ")"),
+    subtitle = paste0("Median Rent Growth vs [Unit increase (%) - Population increase (%)]"),
+    x =  "Unit growth - Population growth (%)",
+    y = "Median rent growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+p_rent_vs_unit_pop_pct_dif
+
+
+unit_pop_prct_rat <- pop_growth$pop_growth_pct / vacancy_growth_df$units_pct_increase
+
+# 5) Rent growth vs Population increase - Unit increase
+p_rent_vs_unit_pop_pct_rat <- master_df %>%
+  ggplot(aes(x = unit_pop_prct_rat, y = rent_cumulative_pct, label = name)) +
+  geom_point(size = 2, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3.2) +
+  labs(
+    title = paste0("Median Rent Growth vs Population increase / Unit increase (", start_year, "–", end_year, ")"),
+    x = "Population growth (%) / Unit growth (%)",
+    y = "Median rent growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+#p_rent_vs_unit_pop_pct_rat
+
+
+# 3) Bubble plot: pop growth (x) vs rent growth (y) sized by units % increase
+p_bubble <- master_df %>%
+  ggplot(aes(x = pop_growth_pct, y = rent_cumulative_pct, label = name)) +
+  geom_point(aes(size = units_pct_increase, color = name), alpha = 0.7) +
+  scale_size_continuous(range = c(3, 12), name = "Units % increase") +
+  geom_smooth(method = "lm", se = TRUE, color = "black", linetype = "dashed") +
+  ggrepel::geom_text_repel(min.segment.length = 0.1, size = 3) +
+  labs(
+    title = paste0("Rent Growth vs Population Growth (bubble = units % increase)"),
+    x = "Population growth (%)",
+    y = "Median rent growth (%)",
+    color = "MSA"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "right")
+#p_bubble
+
+```
+
+
+
+
+
+
