@@ -25,7 +25,3 @@ The key variables used in the replication include:
 | `units_pct_increase`      | (Supply)Percent increase in total housing units (or unit density) across the study period for each MSA.       |
 ---
 
-
-## Repository Structure
-A suggested project structure (modify as needed):
-
