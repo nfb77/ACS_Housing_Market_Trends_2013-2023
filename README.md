@@ -6,7 +6,7 @@ This repository contains R code used to replicate analyses examining housing mar
 ---
 ## File Information
 - **Data file names:** `df_indexed_rent.csv`,`growth_df_adj.csv`,`master_df.csv`,`vacancy_growth_df.csv`,`pop_growth.csv`
-- **Rmd file name:** `The Supply and Demand Fallacy.rmd` 
+- **Rmd file name:** `Rethinking the Housing Crisis.rmd` 
 - **Coverage:** 21 of top 35 MSA's in the U.S. (by population in 2023)
 - **Time span:** 2013 – 2023  
 - **Unit of observation:** MSA by year
