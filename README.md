@@ -21,7 +21,7 @@ The key variables used in the replication include:
 | Variable        | Description                                                                 |
 |-----------------|-----------------------------------------------------------------------------|
 | `rent_cumulative_pct`      | Percent cumulative change in median gross rent over the study period for each MSA.|
-| `pop_growth_pct`      |  (Demand) Percent change in total population over the study period for each MSA.|
-| `units_pct_increase`      | (Supply)Percent increase in total housing units (or unit density) across the study period for each MSA.       |
+| `pop_growth_pct`      |  Percent change in total population over the study period for each MSA (Housing Demand). |
+| `units_pct_increase`      | Percent increase in total housing units (or unit density) across the study period for each MSA (Housing Supply).       |
 ---
 
